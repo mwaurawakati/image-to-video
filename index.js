@@ -310,7 +310,12 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { plus100, sum } = nativeBinding
+const { DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS, Config, Colorspace, VideoEncoding, convertImagesToVideo } = nativeBinding
 
-module.exports.plus100 = plus100
-module.exports.sum = sum
+module.exports.DEFAULT_WIDTH = DEFAULT_WIDTH
+module.exports.DEFAULT_HEIGHT = DEFAULT_HEIGHT
+module.exports.DEFAULT_FPS = DEFAULT_FPS
+module.exports.Config = Config
+module.exports.Colorspace = Colorspace
+module.exports.VideoEncoding = VideoEncoding
+module.exports.convertImagesToVideo = convertImagesToVideo

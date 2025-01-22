@@ -1,3 +1,32 @@
-import { sum } from './index.js'
- 
-console.log('From native', sum(40, 2))
+import { Config, convertImagesToVideo } from './index.js'
+
+let conf = Config.defaultConfigWithImages([
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+  '/Users/mwaurawakati/Downloads/bolt.png',
+  '/Users/mwaurawakati/Downloads/google.png',
+  '/Users/mwaurawakati/Downloads/apple.png',
+])
+conf.outputPath = '/Users/mwaurawakati/Desktop/t.mp4'
+try {
+  convertImagesToVideo(conf)
+} catch (e) {
+  console.log(e)
+}
+//console.log(conf)
