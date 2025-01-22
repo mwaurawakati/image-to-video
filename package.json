@@ -1,7 +1,7 @@
 {
-  "name": "@napi-rs/package-template",
+  "name": "image-to-video",
   "version": "1.0.0",
-  "description": "Template project for writing node package with napi-rs",
+  "description": "This is a package that converts images ",
   "main": "index.js",
   "repository": "git@github.com:napi-rs/package-template.git",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "index.js"
   ],
   "napi": {
-    "name": "package-template",
+    "name": "image-to-video",
     "triples": {
       "defaults": true,
       "additional": [
@@ -104,5 +104,8 @@
     "singleQuote": true,
     "arrowParens": "always"
   },
-  "packageManager": "yarn@4.6.0"
+  "packageManager": "yarn@4.6.0",
+  "dependencies": {
+    "@napi-rs/package-template": "^1.0.0"
+  }
 }
