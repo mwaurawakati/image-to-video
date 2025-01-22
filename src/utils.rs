@@ -6,6 +6,8 @@ use std::{
   path::Path,
 };
 
+use crate::models::{DEFAULT_HEIGHT, DEFAULT_WIDTH};
+
 pub fn create_frame(img: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<u8> {
   img.pixels().flat_map(|p| p.channels().to_vec()).collect()
 }
@@ -45,16 +47,19 @@ pub fn save_video(data: Cursor<Vec<u8>>, output_path: String) -> std::io::Result
               format!("failed to start writing mp4 with error: {:?}", e),
             )
           })?;
-          /*let track_config = mp4::TrackConfig{
+          let ac = mp4::AvcConfig {
+            width: DEFAULT_WIDTH as u16,
+            height: DEFAULT_HEIGHT as u16,
+            seq_param_set: vec![],
+            pic_param_set: vec![],
+          };
+          let track_config = mp4::TrackConfig {
             track_type: mp4::TrackType::Video,
             timescale: 60, // FPS
             language: "und".to_string(),
-            media_conf:mp4::AvcConfig{
-                Width: DEFAULT_WIDTH,
-                height: DEFAULT_HEIGHT
-            }
-          }
-          writer.add_track(&track_config);*/
+            media_conf: mp4::MediaConfig::AvcConfig(ac),
+          };
+          let _ = writer.add_track(&track_config);
           writer.write_end().map_err(|e| {
             std::io::Error::new(
               std::io::ErrorKind::Other,
@@ -69,7 +74,8 @@ pub fn save_video(data: Cursor<Vec<u8>>, output_path: String) -> std::io::Result
         _ => {
           // Create and write to the file
           let mut file = File::create(&path)?;
-          file.write_all(&data.into_inner())?;
+          file.write_all(&data.clone().into_inner())?;
+          std::fs::write("circle.mp4", &data.into_inner()).unwrap();
           Ok(())
         }
       }

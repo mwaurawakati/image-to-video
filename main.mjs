@@ -23,7 +23,7 @@ let conf = Config.defaultConfigWithImages([
   '/Users/mwaurawakati/Downloads/google.png',
   '/Users/mwaurawakati/Downloads/apple.png',
 ])
-conf.outputPath = '/Users/mwaurawakati/Desktop/t.mp4'
+conf.outputPath = '/Users/mwaurawakati/Desktop/t.h264'
 try {
   convertImagesToVideo(conf)
 } catch (e) {

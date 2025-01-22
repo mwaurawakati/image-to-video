@@ -1,12 +1,12 @@
-use crate::utils::save_video;
-use napi::bindgen_prelude::*;
-use std::io::{Cursor, Write};
-use x264::{Encoder, Image};
 use super::{
   models::{Colorspace, Config, DEFAULT_FPS, DEFAULT_HEIGHT, DEFAULT_WIDTH},
   utils::create_frame,
 };
+use crate::utils::save_video;
 use image::open;
+use napi::bindgen_prelude::*;
+use std::io::{Cursor, Write};
+use x264::{Encoder, Image};
 
 pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
   // Catch potential panics and wrap them in meaningful errors
@@ -15,7 +15,6 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
     let width = config.width.unwrap_or(DEFAULT_WIDTH);
     let height = config.height.unwrap_or(DEFAULT_HEIGHT);
     let fps = config.fps.unwrap_or(DEFAULT_FPS);
-
 
     let colorspace = match config.colorspace {
       Some(c) => match c {
@@ -38,8 +37,6 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
       None => x264::Colorspace::RGB,
     };
 
-    
-
     // Calculate how many frames each image will repeat
     let frames_per_image = 3 * fps; // 10 seconds per image
 
@@ -50,8 +47,8 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
           format!("Failed to open image: {}", e),
         )
       })?;
-      im = im.resize_exact(width, height, image::imageops::FilterType::CatmullRom);
-      frames.push(im);
+      let im1 = im.resize_exact(width, height, image::imageops::FilterType::Lanczos3);
+      frames.push(im1.to_rgb8());
     }
 
     // Configure encoder
@@ -85,10 +82,10 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
     // Encode frames
     for (i, frame) in frames.iter().enumerate() {
       for _j in 0..frames_per_image {
-        let f = Box::leak(Box::new(frame.clone().into_rgb8()));
-        let frame_data = create_frame(&f);
+        //let f = Box::leak(Box::new(frame.clone().into_rgb8()));
+        let frame_data = create_frame(&frame.clone());
         let image = Image::rgb(width as _, height as _, &frame_data);
-        let (data, _) = encoder.encode((60 * i as i64) as _, image).map_err(|e| {
+        let (data, _) = encoder.encode((60 * i) as _, image).map_err(|e| {
           napi::Error::new(
             napi::Status::GenericFailure,
             format!("Failed to encode frame: {:?}", e),
