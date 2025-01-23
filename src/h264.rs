@@ -37,11 +37,10 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
       None => x264::Colorspace::RGB,
     };
 
-    // Calculate how many frames each image will repeat
-    let frames_per_image = 3 * fps; // 10 seconds per image
+    let frames_per_image = config.fpi.unwrap_or(3) * fps; 
 
     for image in &config.images {
-      let mut im = open(image).map_err(|e| {
+      let im = open(image).map_err(|e| {
         napi::Error::new(
           napi::Status::InvalidArg,
           format!("Failed to open image: {}", e),
@@ -53,7 +52,7 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
 
     // Configure encoder
     let mut encoder = Encoder::builder()
-      .fps(60, 1)
+      .fps(fps, 1)
       .build(colorspace, width as _, height as _)
       .map_err(|e| {
         napi::Error::new(
@@ -81,16 +80,17 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
 
     // Encode frames
     for (i, frame) in frames.iter().enumerate() {
+      let frame_data = create_frame(&frame.clone());
       for _j in 0..frames_per_image {
-        //let f = Box::leak(Box::new(frame.clone().into_rgb8()));
-        let frame_data = create_frame(&frame.clone());
         let image = Image::rgb(width as _, height as _, &frame_data);
-        let (data, _) = encoder.encode((60 * i) as _, image).map_err(|e| {
-          napi::Error::new(
-            napi::Status::GenericFailure,
-            format!("Failed to encode frame: {:?}", e),
-          )
-        })?;
+        let (data, _) = encoder
+          .encode((fps as i64 * i as i64) as _, image)
+          .map_err(|e| {
+            napi::Error::new(
+              napi::Status::GenericFailure,
+              format!("Failed to encode frame: {:?}", e),
+            )
+          })?;
         buffer.write_all(data.entirety()).map_err(|e| {
           napi::Error::new(
             napi::Status::GenericFailure,
@@ -121,7 +121,13 @@ pub fn images_to_h264_video(config: &Config) -> Result<Vec<u8>> {
 
     // Save output to file
     if let Some(output_path) = &config.output_path {
-      save_video(buffer.clone(), output_path.to_string()).map_err(|e| {
+      save_video(
+        buffer.clone(),
+        output_path.to_string(),
+        width as i32,
+        height as i32,
+      )
+      .map_err(|e| {
         napi::Error::new(
           napi::Status::GenericFailure,
           format!("Failed to save video with error: {}", e),

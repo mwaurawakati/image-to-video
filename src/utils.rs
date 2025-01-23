@@ -1,18 +1,20 @@
 use image::{ImageBuffer, Pixel, Rgb};
-use mp4::Mp4Config;
 use std::{
   fs::{create_dir_all, File},
   io::{Cursor, Write},
   path::Path,
 };
 
-use crate::models::{DEFAULT_HEIGHT, DEFAULT_WIDTH};
-
 pub fn create_frame(img: &ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<u8> {
   img.pixels().flat_map(|p| p.channels().to_vec()).collect()
 }
 
-pub fn save_video(data: Cursor<Vec<u8>>, output_path: String) -> std::io::Result<()> {
+pub fn save_video(
+  data: Cursor<Vec<u8>>,
+  output_path: String,
+  width: i32,
+  height: i32,
+) -> std::io::Result<()> {
   let path = Path::new(&output_path);
 
   // Create parent directory if it doesn't exist
@@ -26,48 +28,10 @@ pub fn save_video(data: Cursor<Vec<u8>>, output_path: String) -> std::io::Result
     Some(ext) => {
       match ext.to_str() {
         Some("mp4") => {
-          let mut file = File::create(path).unwrap();
-          let config = Mp4Config {
-            major_brand: str::parse("isom").unwrap(),
-            minor_version: 512,
-            compatible_brands: vec![
-              str::parse("isom").unwrap(),
-              str::parse("iso2").unwrap(),
-              str::parse("avc1").unwrap(),
-              str::parse("mp41").unwrap(),
-            ],
-            timescale: 1000,
-          };
-
-          //let writer = Mp4Writer::write_start(&mut mp4_file, &config).unwrap();
-
-          let mut writer = mp4::Mp4Writer::write_start(data, &config).map_err(|e| {
-            std::io::Error::new(
-              std::io::ErrorKind::Other,
-              format!("failed to start writing mp4 with error: {:?}", e),
-            )
-          })?;
-          let ac = mp4::AvcConfig {
-            width: DEFAULT_WIDTH as u16,
-            height: DEFAULT_HEIGHT as u16,
-            seq_param_set: vec![],
-            pic_param_set: vec![],
-          };
-          let track_config = mp4::TrackConfig {
-            track_type: mp4::TrackType::Video,
-            timescale: 60, // FPS
-            language: "und".to_string(),
-            media_conf: mp4::MediaConfig::AvcConfig(ac),
-          };
-          let _ = writer.add_track(&track_config);
-          writer.write_end().map_err(|e| {
-            std::io::Error::new(
-              std::io::ErrorKind::Other,
-              format!("failed to finish writing mp4 with error: {:?}", e),
-            )
-          })?;
-          let data: Vec<u8> = writer.into_writer().into_inner();
-          file.write_all(&data)?;
+          let mut mp4muxer = minimp4::Mp4Muxer::new(File::create(path).unwrap());
+          mp4muxer.init_video(width, height, false, "title");
+          mp4muxer.write_video(&data.into_inner());
+          mp4muxer.close();
           println!("MP4 file saved at `output.mp4`.");
           Ok(())
         }
@@ -75,7 +39,6 @@ pub fn save_video(data: Cursor<Vec<u8>>, output_path: String) -> std::io::Result
           // Create and write to the file
           let mut file = File::create(&path)?;
           file.write_all(&data.clone().into_inner())?;
-          std::fs::write("circle.mp4", &data.into_inner()).unwrap();
           Ok(())
         }
       }

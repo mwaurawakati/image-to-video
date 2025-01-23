@@ -18,7 +18,7 @@ pub struct Config {
   pub colorspace: Option<Colorspace>,
   pub output_path: Option<String>,
   pub fpi: Option<u32>,
-  pub video_encoding: VideoEncoding
+  pub video_encoding: Option<VideoEncoding>,
 }
 
 
@@ -34,7 +34,7 @@ impl Config {
       colorspace: Some(Colorspace::RGB),
       output_path: None,
       fpi: Some(3),
-      video_encoding: VideoEncoding::H264,
+      video_encoding: Some(VideoEncoding::H264),
     }
   }
 
@@ -46,6 +46,8 @@ impl Config {
     width: Option<u32>,
     colorspace: Option<Colorspace>,
     output_path: Option<String>,
+    fpi: Option<u32>,
+    video_encoding: Option<VideoEncoding>
   ) -> Self {
     Config {
       images,
@@ -54,8 +56,8 @@ impl Config {
       width,
       colorspace,
       output_path,
-      fpi: Some(3),
-      video_encoding: VideoEncoding::H264,
+      fpi,
+      video_encoding,
     }
   }
 
@@ -69,7 +71,7 @@ impl Config {
       colorspace: Some(Colorspace::RGB),
       output_path: None,
       fpi: Some(3),
-      video_encoding: VideoEncoding::H264,
+      video_encoding: Some(VideoEncoding::H264),
     }
   }
 
@@ -102,6 +104,16 @@ impl Config {
   pub fn resolustion(&mut self, width: u32, height: u32) {
     self.width = Some(width);
     self.height = Some(height);
+  }
+
+  #[napi(setter)]
+  pub fn fpi(&mut self, fpi: u32) {
+    self.fpi = Some(fpi);
+  }
+  
+  #[napi(setter)]
+  pub fn video_encoding(&mut self, video_encoding: VideoEncoding) {
+    self.video_encoding = Some(video_encoding);
   }
 }
 

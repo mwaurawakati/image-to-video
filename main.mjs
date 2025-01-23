@@ -1,4 +1,4 @@
-import { Config, convertImagesToVideo } from './index.js'
+import { Config, convertImagesToVideo, VideoEncoding } from './index.js'
 
 let conf = Config.defaultConfigWithImages([
   '/Users/mwaurawakati/Downloads/bolt.png',
@@ -23,9 +23,11 @@ let conf = Config.defaultConfigWithImages([
   '/Users/mwaurawakati/Downloads/google.png',
   '/Users/mwaurawakati/Downloads/apple.png',
 ])
-conf.outputPath = '/Users/mwaurawakati/Desktop/t.h264'
+conf.outputPath = '/Users/mwaurawakati/Desktop/t.mp4'
+//conf.videoEncoding = VideoEncoding.AV1
 try {
-  convertImagesToVideo(conf)
+  let data = convertImagesToVideo(conf)
+  console.log(data)
 } catch (e) {
   console.log(e)
 }

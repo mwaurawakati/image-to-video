@@ -1,11 +1,15 @@
+use std::io::Cursor;
+use std::io::Write;
+
+use crate::utils::save_video;
+
 use super::models::{Config as cConfig, DEFAULT_HEIGHT, DEFAULT_WIDTH};
 use image::open;
-use image::DynamicImage;
+use image::ImageBuffer;
 use napi::bindgen_prelude::*;
 use rav1e::{config::SpeedSettings, *};
 
 pub fn images_to_av1_video(config: &cConfig) -> Result<Vec<u8>> {
-  let mut frames1: Vec<DynamicImage> = vec![];
   let width = config.width.unwrap_or(DEFAULT_WIDTH);
   let height = config.height.unwrap_or(DEFAULT_HEIGHT);
   //let fps = config.fps.unwrap_or(DEFAULT_FPS);
@@ -23,8 +27,8 @@ pub fn images_to_av1_video(config: &cConfig) -> Result<Vec<u8>> {
       format!("Failed to create context: {:?}", e),
     )
   })?;
-  let mut output = Vec::new();
-  //let mut frames = vec![];
+  let mut output = Cursor::new(Vec::new());
+  let mut frames = vec![];
   for image in &config.images {
     let mut im = open(image).map_err(|e| {
       napi::Error::new(
@@ -33,40 +37,20 @@ pub fn images_to_av1_video(config: &cConfig) -> Result<Vec<u8>> {
       )
     })?;
     im = im.resize_exact(width, height, image::imageops::FilterType::CatmullRom);
-    frames1.push(im);
+    frames.push(im.into_rgba8());
   }
-  for (i, image) in frames1.iter().enumerate() {
-    // Resize the image to match the encoder dimensions if necessary
-    let resized_image = image.resize_exact(
-      width as u32,
-      height as u32,
-      image::imageops::FilterType::Triangle,
-    );
+  let frames_per_image = config.fpi.unwrap_or(3);
+  let frame = ctx.new_frame();
+  for (_i, image) in frames.iter().enumerate() {
+    let frame = create_frame(frame.clone(), enc.clone(), image);
 
-    // Extract pixel data
-    let pixels = resized_image.to_rgb8();
-    let _stride = pixels.width() as usize * 3;
-
-    // Create a new frame
-    let mut frame = ctx.new_frame();
-    for (_plane_idx, plane) in frame.planes.iter_mut().enumerate() {
-      let xdec = plane.cfg.xdec as usize;
-      let stride = (width + xdec as u32) >> xdec;
-      plane.copy_from_raw_u8(&pixels, stride as usize, 1);
-    }
-
-    println!("Sending frame {}", i);
-    match ctx.send_frame(frame) {
-      Ok(_) => {}
-      Err(EncoderStatus::EnoughData) => {
-        println!("Frame {} dropped due to queue limit", i);
-      }
-      Err(e) => {
-        return Err(napi::Error::new(
+    for _i in 0..frames_per_image {
+      ctx.send_frame(frame.clone()).map_err(|e| {
+        napi::Error::new(
           napi::Status::InvalidArg,
-          format!("Error sending frame {}: {:?}", i, e),
-        ))
-      }
+          format!("Failed to send frame: {}", e),
+        )
+      })?;
     }
   }
 
@@ -74,10 +58,60 @@ pub fn images_to_av1_video(config: &cConfig) -> Result<Vec<u8>> {
   ctx.flush();
 
   // Collect encoded packets
-  while let Ok(packet) = ctx.receive_packet() {
-    println!("Packet {}", packet.input_frameno);
-    output.extend_from_slice(&packet.data);
+  loop {
+    match ctx.receive_packet() {
+      Ok(pkt) => {
+        
+        output.write_all(&pkt.data).unwrap();
+      }
+      Err(e) => match e {
+        EncoderStatus::LimitReached => {
+          break;
+        }
+        EncoderStatus::Encoded => println!("  Encoded"),
+        EncoderStatus::NeedMoreData => println!("  Need more data"),
+        _ => {
+          println!("Unable to receive packet ");
+          return Err(napi::Error::new(
+            napi::Status::InvalidArg,
+            format!("Failed to read packet {:?}", e),
+          ))
+        }
+      },
+    }
   }
+  // Save output to file
+  if let Some(output_path) = &config.output_path {
+    save_video(
+      output.clone(),
+      output_path.to_string(),
+      width as i32,
+      height as i32,
+    )
+    .map_err(|e| {
+      napi::Error::new(
+        napi::Status::GenericFailure,
+        format!("Failed to save video with error: {}", e),
+      )
+    })?;
+  }
+  Ok(output.into_inner())
+}
 
-  Ok(output)
+fn create_frame(
+  mut f: Frame<u8>,
+  encoder_config: EncoderConfig,
+  img_rgba: &ImageBuffer<image::Rgba<u8>, Vec<u8>>,
+) -> Frame<u8> {
+  for (i, plane) in f.planes.iter_mut().enumerate() {
+    let stride = (encoder_config.clone().width + plane.cfg.xdec) >> plane.cfg.xdec;
+    let plane_data = match i {
+      0 => img_rgba.pixels().map(|p| p[0]).collect::<Vec<_>>(), // Y plane
+      1 => img_rgba.pixels().map(|p| p[1]).collect::<Vec<_>>(), // U plane
+      2 => img_rgba.pixels().map(|p| p[2]).collect::<Vec<_>>(), // V plane
+      _ => panic!("Unexpected plane index"),
+    };
+    plane.copy_from_raw_u8(&plane_data, stride, 1);
+  }
+  f
 }

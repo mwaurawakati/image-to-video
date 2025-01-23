@@ -25,11 +25,11 @@ export const enum Colorspace {
   YV24 = 13,
   BGR = 14,
   BGRA = 15,
-  RGB = 16
+  RGB = 16,
 }
 export const enum VideoEncoding {
   AV1 = 1,
-  H264 = 2
+  H264 = 2,
 }
 export declare function convertImagesToVideo(config: Config): Array<number>
 export declare class Config {
@@ -40,9 +40,18 @@ export declare class Config {
   colorspace?: Colorspace
   outputPath?: string
   fpi?: number
-  videoEncoding: VideoEncoding
+  videoEncoding?: VideoEncoding
   constructor()
-  static createConfig(images: Array<string>, fps?: number | undefined | null, height?: number | undefined | null, width?: number | undefined | null, colorspace?: Colorspace | undefined | null, outputPath?: string | undefined | null): Config
+  static createConfig(
+    images: Array<string>,
+    fps?: number | undefined | null,
+    height?: number | undefined | null,
+    width?: number | undefined | null,
+    colorspace?: Colorspace | undefined | null,
+    outputPath?: string | undefined | null,
+    fpi?: number | undefined | null,
+    videoEncoding?: VideoEncoding | undefined | null,
+  ): Config
   static defaultConfigWithImages(images: Array<string>): Config
   set addImages(images: Array<string>)
   set addImage(image: string)
@@ -50,4 +59,6 @@ export declare class Config {
   set outputPath(outputPath: string)
   set colorspace(cs: Colorspace)
   set resolustion(width: number, height: number)
+  set fpi(fpi: number)
+  set videoEncoding(videoEncoding: VideoEncoding)
 }

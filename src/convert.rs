@@ -22,7 +22,7 @@ pub fn convert_images_to_video(config: &Config) -> Result<Vec<u8>> {
     ));
   }
 
-  match config.video_encoding {
+  match config.video_encoding.unwrap_or(VideoEncoding::H264) {
     VideoEncoding::H264 => return images_to_h264_video(config),
     VideoEncoding::AV1 => return images_to_av1_video(config),
   }
